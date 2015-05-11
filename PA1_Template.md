@@ -146,6 +146,22 @@ max(stepsbyinterval$steps)
 
 ```r
 library(dplyr)
+```
+
+```
+## 
+## Attaching package: 'dplyr'
+## 
+## The following object is masked from 'package:stats':
+## 
+##     filter
+## 
+## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+```
+
+```r
 filter(stepsbyinterval, steps >= 206.1698)
 ```
 
