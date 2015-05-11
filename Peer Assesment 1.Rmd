@@ -1,0 +1,176 @@
+---
+title: "Reproducible Reasearch Peer Assessment 1"
+author: "Keith Linhares"
+date: "Wednesday, May 06, 2015"
+output: html_document
+---
+
+**Loading and Preprocessing the Data**
+
+
+```{r, echo = T}
+activity <- read.csv("activity.csv")
+```
+
+1. What is mean total number of steps taken per day? Below gives a total of steps per day
+
+```{r, echo = T}
+stepsbyday <- aggregate(steps ~ date, data = activity, sum)
+stepsbyday
+```
+
+2. If you do not understand the difference between a histogram and a barplot, research the difference between them. Make a histogram of the total number of steps taken each day.
+
+Below is a histogram of the Steps by Day:
+
+
+```{r, echo=T}
+hist(stepsbyday$steps, main = "Histogram of Steps by Day", xlab = "Steps per Day", col = "brown")
+```
+
+3. Calculate and report the mean and median of the total number of steps taken per day
+
+```{r, echo = T}
+mean(stepsbyday$steps)
+median(stepsbyday$steps)
+```
+
+
+**What is the average daily activity pattern?**
+
+1. Make a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis).
+
+First, I need to aggregate steps by interval:
+
+```{r, echo = T}
+stepsbyinterval <- aggregate(steps~interval, data = activity, mean)
+```
+
+
+Next, I will make the plot:
+
+```{r, echo=T}
+plot(stepsbyinterval,type = "l", main = "Average Steps by Interval", xlab = "Interval", ylab = "Avg Steps", col = "brown")
+```
+
+
+2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+Determine the max of my "stepsbyinterval" data frame. I am going to check what the max is, then filter for the max using dplyr to find the row
+```{r, echo = T}
+max(stepsbyinterval$steps)
+library(dplyr)
+filter(stepsbyinterval, steps >= 206.1698)
+```
+
+**Imputing missing values**
+
+
+1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with NAs)
+
+```{r, echo = T}
+sum(is.na(activity))
+```
+
+2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+I already have stepsbyinterval, so I will use that to replace the data in activity with the mean of interval. 
+
+I was having trouble with the for loop, so I used some pieces from the website below:
+
+http://rstudio-pubs-static.s3.amazonaws.com/17469_4fbb71c305ba4a25a40eba1f8cdbb3e9.html
+
+The forloop below creates a numeric vector called fillnas.
+The loop then goes through the activity sheet, and if the steps are NA, it subsets the stepsbyinterval dataframe to get the average steps per interval.
+If no NA, it uses the existing steps values.
+It then creates a vector where the NA values are replaced and assigns this to the newdata data frame.
+Vi
+
+```{r, echo=TRUE}
+fillnas <- numeric()
+for(i in 1:nrow(activity)){
+    rows <- activity[i,]
+    if (is.na(rows$steps)){
+        steps <- subset(stepsbyinterval, interval == rows$interval)$steps
+        }else{
+            steps <- rows$steps
+        }
+        fillnas <- c(fillnas, steps)
+        
+    }
+```
+
+3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
+
+```{r, echo=TRUE}
+
+    newdata <- activity
+    newdata$steps <- fillnas
+```
+
+4. Make a histogram of the total number of steps taken each day and Calculate and report the mean and median total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+Aggregate the data from the newdata
+```{r, echo = T}
+newdatastepsbyday <- aggregate(steps ~ date, data = newdata, sum)
+newdatastepsbyday
+```
+
+Make the histogram with new aggregated data
+```{r, echo=TRUE}
+hist(newdatastepsbyday$steps, main = "Histogram of Steps by Day", xlab = "Steps per Day", col = "brown")
+```
+
+Determine Mean and Median:
+```{r, echo = T}
+mean(newdatastepsbyday$steps)
+median(newdatastepsbyday$steps)
+```
+
+**Are there differences in activity patterns between weekdays and weekends?**
+
+
+1. Create a new factor variable in the dataset with two levels – “weekday” and “weekend” indicating whether a given date is a weekday or weekend day.
+
+First, I need to convert date to a date
+
+```{r}
+activity$date <- as.Date(activity$date)
+```
+
+Then, I will create the new variable and use a for loop to populate it. This creates an object called dayname that uses weekdays function to name the day based on date.
+Then, an empty vector is created called daytype. The loop will be used to assign a value of weekday or weekend based on the day of the week (Monday, Tuesday, etc.)
+The vector is filled and then added as a new variable in the Activity dataset.
+
+Again, I could not have done this for loop without help from the website below:
+
+http://rstudio-pubs-static.s3.amazonaws.com/17469_4fbb71c305ba4a25a40eba1f8cdbb3e9.html
+
+```{r, echo = T}
+dayname <- weekdays(activity$date)
+daytype <- vector()
+for (i in 1:nrow(activity)) {
+    if (dayname[i] == "Saturday") {
+        daytype[i] <- "Weekend"
+    } else if (dayname[i] == "Sunday") {
+        daytype[i] <- "Weekend"
+    } else {
+        daytype[i] <- "Weekday"
+    }
+}
+activity$daytype <- daytype
+activity$daytype <- factor(activity$daytype)
+
+```
+
+
+
+
+2. Make a panel plot containing a time series plot (i.e. type = "l") of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). See the README file in the GitHub repository to see an example of what this plot should look like using simulated data.
+
+```{r, echo=TRUE}
+stepsbydaytype <- aggregate(steps~interval + daytype, data = activity, mean)
+library(lattice)
+ xyplot(steps ~ interval | daytype, stepsbydaytype, type = "l", layout = c(1, 2), 
+           xlab = "Interval", ylab = "Number of steps")
+```
